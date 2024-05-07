@@ -1,0 +1,422 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[31]:
+
+
+#jupyter notebook
+
+
+# In[32]:
+
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn import preprocessing
+import matplotlib.pyplot as plt
+
+
+# In[33]:
+
+
+data=pd.read_csv('fake_job_postings.csv')
+data.head()
+
+
+# In[34]:
+
+
+data.shape
+
+
+# In[35]:
+
+
+data.info()
+
+
+# In[36]:
+
+
+data.isnull().sum()
+
+
+# In[37]:
+
+
+#Data Preprocessing
+
+data['location'] = data.location.fillna('none')
+data['department'] = data.department.fillna('not specified')
+data['company_profile'] = data.company_profile.fillna('none')
+data['requirements'] = data.requirements.fillna('not specified')
+data['employment_type'] = data.employment_type.fillna('not specified')
+data['required_experience'] = data.required_experience.fillna('not specified')
+data['required_education'] = data.required_education.fillna('not specified')
+data['industry'] = data.industry.fillna('not specified')
+data['function'] = data.function.fillna('not specified')
+
+data.drop(['salary_range','benefits','telecommuting','has_questions'], axis=1, inplace=True)
+
+
+# In[39]:
+
+
+data.isnull().sum()
+
+
+# In[40]:
+
+
+data.head()
+
+
+# In[41]:
+
+
+data.columns
+
+
+# In[42]:
+
+
+print('Data set:')
+for col_name in data.columns:
+    if data[col_name].dtypes == 'object' :
+        unique_cat = len(data[col_name].unique())
+        print("Feature '{col_name}' has {unique_cat} categories".format(col_name=col_name, unique_cat=unique_cat))
+
+print()
+
+
+# In[43]:
+
+
+df = data[['job_id','title', 'location','company_profile', 'requirements', 'employment_type', 'required_experience', 'required_education', 'industry', 'function', 'fraudulent']]
+
+
+# In[44]:
+
+
+df.isnull().sum()
+
+
+# In[45]:
+
+
+df_num = df[['fraudulent']]
+df_cat = df[['title', 'location','company_profile', 'requirements','employment_type',
+       'required_experience', 'required_education', 'industry', 'function']]
+
+
+# In[46]:
+
+
+# Checking for Outliers in numerical data
+plt.figure(figsize=[16,8])
+sns.boxplot(data = df_num)
+plt.show()
+
+
+# In[47]:
+
+
+#Removing Outliers from columns
+df_num = df_num[df_num['fraudulent'] < 0.9 ]
+plt.figure(figsize=[16,8])
+sns.boxplot(data = df_num)
+plt.show()
+
+
+# In[48]:
+
+
+fig, axes = plt.subplots(ncols=2, figsize=(17, 5), dpi=100)
+plt.tight_layout()
+
+df["fraudulent"].value_counts().plot(kind='pie', ax=axes[0], labels=['Real Post (95%)', 'Fake Post (5%)'])
+temp = df["fraudulent"].value_counts()
+sns.barplot(temp.index,temp,ax=axes[1])
+
+axes[0].set_ylabel(' ')
+axes[1].set_ylabel(' ')
+axes[1].set_xticklabels(["Real Post (17014) [0's]", "Fake Post (866) [1's]"])
+
+axes[0].set_title('Target Distribution in Dataset', fontsize=13)
+axes[1].set_title('Target Count in Dataset', fontsize=13)
+
+plt.show()
+
+
+# In[50]:
+
+
+cat_cols = ["employment_type", "required_experience", "required_education",]
+# visualizing categorical variable by target
+import matplotlib.gridspec as gridspec 
+grid = gridspec.GridSpec(3, 3, wspace=0.5, hspace=0.5) 
+plt.figure(figsize=(15,25))
+
+# loop to get column and the count of plots
+for n, col in enumerate(df[cat_cols]): 
+    ax = plt.subplot(grid[n]) 
+    sns.countplot(x=col, data=df, hue='fraudulent', palette='Set2') 
+    ax.set_ylabel('Count', fontsize=12) 
+    ax.set_title(f'{col} Distribution by Target', fontsize=15) 
+    ax.set_xlabel(f'{col} values', fontsize=12)
+    xlabels = ax.get_xticklabels() 
+    ylabels = ax.get_yticklabels() 
+    ax.set_xticklabels(xlabels,  fontsize=10)
+    ax.set_yticklabels(ylabels,  fontsize=10)
+    plt.legend(fontsize=8)
+    plt.xticks(rotation=90) 
+    total = len(df)
+    sizes=[] 
+    for p in ax.patches: 
+        height = p.get_height()
+        sizes.append(height)
+        ax.text(p.get_x()+p.get_width()/2.,
+                height + 3,
+                '{:1.2f}%'.format(height/total*100),
+                ha="center", fontsize=10) 
+    ax.set_ylim(0, max(sizes) * 1.15)
+
+
+plt.show()
+
+
+# In[51]:
+
+
+fig,(ax1,ax2)= plt.subplots(ncols=2, figsize=(17, 5), dpi=100)
+length=df[df["fraudulent"]==1]['requirements'].str.len()
+ax1.hist(length,bins = 20,color='orangered')
+ax1.set_title('Fake Post')
+length=df[df["fraudulent"]==0]['requirements'].str.len()
+ax2.hist(length, bins = 20)
+ax2.set_title('Real Post')
+fig.suptitle('Characters in description')
+plt.show()
+
+
+# In[52]:
+
+
+fig,(ax1,ax2)= plt.subplots(ncols=2, figsize=(17, 5), dpi=100)
+num=df[df["fraudulent"]==1]['company_profile'].str.split().map(lambda x: len(x))
+ax1.hist(num,bins = 20,color='orangered')
+ax1.set_title('Fake Post')
+num=df[df["fraudulent"]==0]['company_profile'].str.split().map(lambda x: len(x))
+ax2.hist(num, bins = 20)
+ax2.set_title('Real Post')
+fig.suptitle('Words in company profile')
+plt.show()
+
+
+# In[53]:
+
+
+fraud = df[df['fraudulent']== 1]
+fraud.shape
+
+
+# In[26]:
+
+
+fraud
+
+
+# In[54]:
+
+
+not_fraud = df[df['fraudulent']== 0]
+not_fraud.shape
+
+
+# In[55]:
+
+
+not_fraud
+
+
+# In[56]:
+
+
+df = fraud.append(not_fraud)
+df
+
+
+# In[57]:
+
+
+from sklearn.preprocessing import LabelEncoder
+le = LabelEncoder()
+df['title'] = le.fit_transform(df['title'])
+df['location'] = le.fit_transform(df['location'])
+df['company_profile'] = le.fit_transform(df['company_profile'])
+df['requirements'] = le.fit_transform(df['requirements'])
+df['employment_type'] = le.fit_transform(df['employment_type'])
+df['required_experience'] = le.fit_transform(df['required_experience'])
+df['required_education'] = le.fit_transform(df['required_education'])
+df['industry'] = le.fit_transform(df['industry'])
+df['function'] = le.fit_transform(df['function'])
+
+
+# In[58]:
+
+
+df.reset_index(inplace = True, drop = True)
+df
+
+
+# In[59]:
+
+
+from sklearn.model_selection import train_test_split
+
+X = df[['job_id', 'title', 'location', 'company_profile', 'requirements',
+       'employment_type','required_experience', 'required_education', 'industry', 'function']].values
+Y = df[['fraudulent']].values
+
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
+
+
+# In[60]:
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+import sklearn.metrics as metrics
+from sklearn.metrics import accuracy_score
+
+
+# In[61]:
+
+
+import warnings
+warnings.filterwarnings('ignore')
+
+
+# In[62]:
+
+
+### Logistic Regression
+
+clf1=LogisticRegression()
+clf1.fit(X_train, Y_train)
+preds=clf1.predict(X_test)
+print('accuracy with Logistic Regression:',accuracy_score(Y_test, preds), '%')
+
+### Random Forest
+
+clf2=RandomForestClassifier()
+clf2.fit(X_train, Y_train)
+preds=clf2.predict(X_test)
+print('accuracy with Random Forest:',accuracy_score(Y_test, preds), '%')
+
+### Support Vector Machine
+
+clf3=SVC()
+clf3.fit(X_train, Y_train)
+preds=clf3.predict(X_test)
+print('accuracy with Support Vector Machine:',accuracy_score(Y_test, preds), '%')
+
+### Decision Tree
+
+clf4=DecisionTreeClassifier()
+clf4.fit(X_train, Y_train)
+preds=clf4.predict(X_test)
+print('accuracy with Decision Tree:',accuracy_score(Y_test, preds), '%')
+
+### K-Nearest Neighbors
+
+clf5=KNeighborsClassifier()
+clf5.fit(X_train, Y_train)
+preds=clf5.predict(X_test)
+print('accuracy with K-Nearest Neighbors :',accuracy_score(Y_test, preds), '%')
+
+### Naive Bayes
+
+clf6=GaussianNB()
+clf6.fit(X_train, Y_train)
+preds=clf6.predict(X_test)
+print('accuracy with Naive Bayes:',accuracy_score(Y_test, preds), '%')
+
+
+# In[63]:
+
+
+from tkinter import *
+
+window = Tk()
+
+window.title("Fake job recruitment detection")
+
+window.geometry('500x200')
+
+lbl = Label(window, text="Enter job id", width = 10)
+lbl.grid(column=0, row=0, padx=(0, 50), pady = 10)
+
+txt = Entry(window,width=20)
+txt.grid(column=1, row=0, pady=10)
+
+result = Label(window, text='')
+result.grid(column=1, row=2, pady=10)
+
+
+def check() :
+    job_id = txt.get()
+    if not job_id :
+        result.configure(text="Please enter Id")
+    else :
+        if job_id.isdigit():
+            detect(int(job_id))
+        else :
+            result.configure(text="Please enter a number")
+            
+def detect(job_id):
+    
+    s = ''
+
+    if (job_id < 1 or job_id > 17880) :
+        result.configure(text="Please enter valid Id [1 - 17880]")
+        
+        
+    else :
+        s = "Posted job with job id '" + str(job_id) + "' is "
+        test_df = df.loc[df["job_id"] == job_id]
+        del test_df['fraudulent']
+        test_df.reset_index(inplace = True, drop = True)
+        
+        
+        print("Logistic Regression : " + str(clf1.predict(test_df)[0]))
+        predicted = int(clf2.predict(test_df)[0])
+        print("Random Forest : " + str(predicted))
+        print("Support Vector Machine : " + str(clf3.predict(test_df)[0]))
+        print("Decision Tree : " + str(clf4.predict(test_df)[0]))
+        print("K-Nearest Neighbors : " + str(clf5.predict(test_df)[0]))
+        print("Naive Bayes : " + str(clf6.predict(test_df)[0]))
+        print()
+        s +=  "real" if predicted == 0 else "fake"
+        result.configure(text=s)
+
+btn = Button(window, text="Detect", command=check)
+btn.grid(column=1, row=1,pady=10)
+
+window.mainloop()
+
+
+# ## 
+
+# In[ ]:
+
+
+
+
+
+
